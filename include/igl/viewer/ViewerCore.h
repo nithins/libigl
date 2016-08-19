@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 
 #include <memory>
+#include <unordered_set>
 
 
 namespace igl
@@ -80,9 +81,9 @@ public:
   IGL_INLINE void clear_framebuffers();
 
   // Draw everything
-  IGL_INLINE void draw(const std::vector<IRenderablePtr> & rens, bool update_matrices = true);
+  IGL_INLINE void draw(const std::unordered_set<IRenderablePtr> & rens, bool update_matrices = true);
   IGL_INLINE void draw_buffer(
-	const std::vector<IRenderablePtr> & rens,
+	const std::unordered_set<IRenderablePtr> & rens,
     bool update_matrices,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -181,6 +182,9 @@ struct MeshRenderable : IRenderable {
 	ViewerData   data;
 	OpenGL_state opengl;
 	bool  isInited = false;
+
+	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+
 
 	IGL_INLINE void init();
 	IGL_INLINE void render(const ViewerCore &core);

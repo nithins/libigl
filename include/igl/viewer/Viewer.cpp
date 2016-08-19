@@ -340,10 +340,19 @@ namespace viewer
     }
   }
 
-  IGL_INLINE void Viewer::addRenderable(IRenderablePtr r)
-  { 
+  IGL_INLINE void Viewer::addRenderable(IRenderablePtr r)  { 
+	  if (hasRenderable(r)) return;
 	  if (window) r->init();
-	  renderObjects.push_back(r); 
+	  renderObjects.insert(r); 
+  }
+
+  IGL_INLINE void Viewer::delRenderable(IRenderablePtr r) {
+	  if (!hasRenderable(r)) return;
+	  r->free();
+	  renderObjects.erase(r);
+  }
+  IGL_INLINE bool Viewer::hasRenderable(IRenderablePtr r) {
+	  return (renderObjects.count(r) == 1);
   }
 
   IGL_INLINE Viewer::~Viewer()

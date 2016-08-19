@@ -186,7 +186,7 @@ IGL_INLINE void igl::viewer::ViewerCore::clear_framebuffers()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-IGL_INLINE void igl::viewer::ViewerCore::draw(const std::vector<IRenderablePtr> & rens, bool update_matrices)
+IGL_INLINE void igl::viewer::ViewerCore::draw(const std::unordered_set<IRenderablePtr> & rens, bool update_matrices)
 {
   using namespace std;
   using namespace Eigen;
@@ -274,7 +274,9 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 	GLint modeli = opengl.shader_mesh.uniform("model");
 	GLint viewi = opengl.shader_mesh.uniform("view");
 	GLint proji = opengl.shader_mesh.uniform("proj");
-	glUniformMatrix4fv(modeli, 1, GL_FALSE, core.model.data());
+
+	Matrix4f model = core.model * this->model;
+	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 	glUniformMatrix4fv(viewi, 1, GL_FALSE, core.view.data());
 	glUniformMatrix4fv(proji, 1, GL_FALSE, core.proj.data());
 
@@ -353,7 +355,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 			viewi = opengl.shader_overlay_lines.uniform("view");
 			proji = opengl.shader_overlay_lines.uniform("proj");
 
-			glUniformMatrix4fv(modeli, 1, GL_FALSE, core.model.data());
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, core.view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, core.proj.data());
 			// This must be enabled, otherwise glLineWidth has no effect
@@ -370,7 +372,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 			viewi = opengl.shader_overlay_points.uniform("view");
 			proji = opengl.shader_overlay_points.uniform("proj");
 
-			glUniformMatrix4fv(modeli, 1, GL_FALSE, core.model.data());
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, core.view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, core.proj.data());
 			glPointSize(core.point_size);
@@ -394,7 +396,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 
 }
 
-IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(const std::vector<IRenderablePtr> & rens,
+IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(const std::unordered_set<IRenderablePtr> & rens,
   bool update_matrices,
   Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,

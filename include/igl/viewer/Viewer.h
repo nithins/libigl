@@ -16,6 +16,7 @@
 #include <string>
 #include <cstdint>
 #include <memory>
+#include <unordered_set>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -65,9 +66,13 @@ namespace viewer
     // Stores the vbos indices and opengl related settings
     //OpenGL_state opengl;
 
-	std::vector<IRenderablePtr> renderObjects;
+	std::unordered_set<IRenderablePtr> renderObjects;
 
 	IGL_INLINE void addRenderable(IRenderablePtr r);
+	IGL_INLINE void delRenderable(IRenderablePtr r);
+	IGL_INLINE bool hasRenderable(IRenderablePtr r);
+
+
 
     // List of registered plugins
     std::vector<ViewerPlugin*> plugins;
