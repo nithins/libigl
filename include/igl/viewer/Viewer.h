@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -46,7 +47,7 @@ namespace viewer
   class Viewer
   {
   public:
-    GLFWwindow* window;
+    GLFWwindow* window=nullptr;
 
     IGL_INLINE int launch(bool resizable = true,bool fullscreen = false);
     IGL_INLINE int launch_init(bool resizable = true,bool fullscreen = false);
@@ -59,10 +60,14 @@ namespace viewer
     ViewerCore core;
 
     // Stores all the data that should be visualized
-    ViewerData data;
+    // ViewerData data;
 
     // Stores the vbos indices and opengl related settings
-    OpenGL_state opengl;
+    //OpenGL_state opengl;
+
+	std::vector<IRenderablePtr> renderObjects;
+
+	IGL_INLINE void addRenderable(IRenderablePtr r);
 
     // List of registered plugins
     std::vector<ViewerPlugin*> plugins;

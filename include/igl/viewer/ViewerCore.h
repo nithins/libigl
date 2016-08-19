@@ -18,10 +18,17 @@
 #include <Eigen/Geometry>
 #include <Eigen/Core>
 
+#include <memory>
+
+
 namespace igl
 {
 namespace viewer
 {
+
+class IRenderable;
+
+typedef std::shared_ptr<IRenderable> IRenderablePtr;
 
 // Basic class of the 3D mesh viewer
 // TODO: write documentation
@@ -73,10 +80,9 @@ public:
   IGL_INLINE void clear_framebuffers();
 
   // Draw everything
-  IGL_INLINE void draw(ViewerData& data, OpenGL_state& opengl, bool update_matrices = true);
+  IGL_INLINE void draw(const std::vector<IRenderablePtr> & rens, bool update_matrices = true);
   IGL_INLINE void draw_buffer(
-    ViewerData& data,
-    OpenGL_state& opengl,
+	const std::vector<IRenderablePtr> & rens,
     bool update_matrices,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -165,8 +171,27 @@ public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-}
-}
+struct IRenderable {
+	virtual void init() = 0;
+	virtual void render(const ViewerCore &core) = 0;
+	virtual void free() = 0;
+};
+
+struct MeshRenderable : IRenderable {
+	ViewerData   data;
+	OpenGL_state opengl;
+	bool  isInited = false;
+
+	IGL_INLINE void init();
+	IGL_INLINE void render(const ViewerCore &core);
+	IGL_INLINE void free();
+};
+
+typedef std::shared_ptr<MeshRenderable> MeshRenderablePtr;
+
+
+} // viewer
+} // igl
 
 #ifndef IGL_STATIC_LIBRARY
 #  include "ViewerCore.cpp"

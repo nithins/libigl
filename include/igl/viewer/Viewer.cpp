@@ -220,7 +220,7 @@ namespace viewer
   #endif
 
     ngui->addGroup("Viewing Options");
-    ngui->addButton("Center object",[&](){this->core.align_camera_center(this->data.V,this->data.F);});
+    //ngui->addButton("Center object",[&](){this->core.align_camera_center(this->data.V,this->data.F);});
     ngui->addButton("Snap canonical view",[&]()
     {
       this->snap_to_canonical_quaternion();
@@ -230,24 +230,24 @@ namespace viewer
 
     ngui->addGroup("Draw options");
 
-    ngui->addVariable<bool>("Face-based", [&](bool checked)
-    {
-      this->data.set_face_based(checked);
-    },[&]()
-    {
-      return this->data.face_based;
-    });
+    //ngui->addVariable<bool>("Face-based", [&](bool checked)
+    //{
+    //  this->data.set_face_based(checked);
+    //},[&]()
+    //{
+    //  return this->data.face_based;
+    //});
 
     ngui->addVariable("Show texture",core.show_texture);
 
-    ngui->addVariable<bool>("Invert normals",[&](bool checked)
-    {
-      this->data.dirty |= ViewerData::DIRTY_NORMAL;
-      this->core.invert_normals = checked;
-    },[&]()
-    {
-      return this->core.invert_normals;
-    });
+    //ngui->addVariable<bool>("Invert normals",[&](bool checked)
+    //{
+    //  this->data.dirty |= ViewerData::DIRTY_NORMAL;
+    //  this->core.invert_normals = checked;
+    //},[&]()
+    //{
+    //  return this->core.invert_normals;
+    //});
 
     ngui->addVariable("Show overlay", core.show_overlay);
     ngui->addVariable("Show overlay depth", core.show_overlay_depth);
@@ -287,7 +287,7 @@ namespace viewer
     scroll_position = 0.0f;
 
     // Per face
-    data.set_face_based(false);
+    //data.set_face_based(false);
 
     // C-style callbacks
     callback_init         = nullptr;
@@ -340,6 +340,12 @@ namespace viewer
     }
   }
 
+  IGL_INLINE void Viewer::addRenderable(IRenderablePtr r)
+  { 
+	  if (window) r->init();
+	  renderObjects.push_back(r); 
+  }
+
   IGL_INLINE Viewer::~Viewer()
   {
   }
@@ -352,9 +358,11 @@ namespace viewer
     }
   }
 
+
   IGL_INLINE bool Viewer::load_mesh_from_file(const char* mesh_file_name)
   {
-    std::string mesh_file_name_string = std::string(mesh_file_name);
+#if 0
+	std::string mesh_file_name_string = std::string(mesh_file_name);
 
     // first try to load it with a plugin
     for (unsigned int i = 0; i<plugins.size(); ++i)
@@ -427,12 +435,13 @@ namespace viewer
     for (unsigned int i = 0; i<plugins.size(); ++i)
       if (plugins[i]->post_load())
         return true;
-
+#endif
     return true;
   }
 
   IGL_INLINE bool Viewer::save_mesh_to_file(const char* mesh_file_name)
   {
+#if 0
     std::string mesh_file_name_string(mesh_file_name);
 
     // first try to load it with a plugin
@@ -469,8 +478,10 @@ namespace viewer
       printf("Error: %s is not a recognized file type.\n",extension.c_str());
       return false;
     }
+#endif
     return true;
   }
+
 
   IGL_INLINE bool Viewer::key_pressed(unsigned int unicode_key,int modifiers)
   {
@@ -494,13 +505,13 @@ namespace viewer
         core.is_animating = !core.is_animating;
         return true;
       }
-      case 'I':
-      case 'i':
-      {
-        data.dirty |= ViewerData::DIRTY_NORMAL;
-        core.invert_normals = !core.invert_normals;
-        return true;
-      }
+      //case 'I':
+      //case 'i':
+      //{
+      //  data.dirty |= ViewerData::DIRTY_NORMAL;
+      //  core.invert_normals = !core.invert_normals;
+      //  return true;
+      //}
       case 'L':
       case 'l':
       {
@@ -595,13 +606,13 @@ namespace viewer
 
     // Initialization code for the trackball
     Eigen::RowVector3d center;
-    if (data.V.rows() == 0)
-    {
+    //if (data.V.rows() == 0)
+    //{
       center << 0,0,0;
-    }else
-    {
-      center = data.V.colwise().sum()/data.V.rows();
-    }
+    //}else
+    //{
+    //  center = data.V.colwise().sum()/data.V.rows();
+    //}
 
     Eigen::Vector3f coord =
       igl::project(
@@ -768,7 +779,7 @@ namespace viewer
       if (plugins[i]->pre_draw())
         return;
 
-    core.draw(data,opengl);
+    core.draw(renderObjects);
 
     if (callback_post_draw)
       if (callback_post_draw(*this))
@@ -783,6 +794,7 @@ namespace viewer
     screen->drawWidgets();
 #endif
   }
+
 
   IGL_INLINE bool Viewer::save_scene()
   {
@@ -950,9 +962,12 @@ namespace viewer
 
     glfw_window_size(window,width_window,height_window);
 
-    opengl.init();
+	for (auto ren : renderObjects)
+		ren->init();
 
-    core.align_camera_center(data.V,data.F);
+    //opengl.init();
+
+    //core.align_camera_center(data.V,data.F);
 
     // Initialize IGL viewer
     init();
@@ -994,7 +1009,11 @@ namespace viewer
 
   IGL_INLINE void Viewer::launch_shut()
   {
-    opengl.free();
+	  for (auto ren : renderObjects) {
+		  ren->free();
+	  }
+
+
     core.shut();
 
     shutdown_plugins();
