@@ -296,7 +296,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 	if (data.V.rows()>0)
 	{
 		// Render fill
-		if (core.show_faces)
+		if (this->show_faces == TriState::ON || (this->show_faces == TriState::UNKNOWN && core.show_faces))
 		{
 			// Texture
 			glUniform1f(texture_factori, core.show_texture ? 1.0f : 0.0f);
@@ -305,7 +305,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 		}
 
 		// Render wireframe
-		if (core.show_lines)
+		if (this->show_lines == TriState::ON || (this->show_lines == TriState::UNKNOWN && core.show_lines))
 		{
 			glLineWidth(core.line_width);
 			glUniform4f(fixed_colori, core.line_color[0], core.line_color[1],

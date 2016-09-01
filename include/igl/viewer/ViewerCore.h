@@ -176,6 +176,16 @@ struct IRenderable {
 	virtual void init() = 0;
 	virtual void render(const ViewerCore &core) = 0;
 	virtual void free() = 0;
+
+	enum class TriState : int8_t {
+		UNKNOWN = -1,
+		OFF = 0,
+		ON  = 1
+	};
+
+
+	TriState show_lines = TriState::UNKNOWN;
+	TriState show_faces = TriState::UNKNOWN;
 };
 
 struct MeshRenderable : IRenderable {
@@ -184,6 +194,7 @@ struct MeshRenderable : IRenderable {
 	bool  isInited = false;
 
 	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+
 
 
 	IGL_INLINE void init();
