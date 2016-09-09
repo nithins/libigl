@@ -1,6 +1,6 @@
 [submodule "external/nanogui"]
 	path = external/nanogui
-url=https://github.com/nithins/nanogui.git
+	url=https://github.com/nithins/nanogui.git
         fetchRecursiveSubmodules = true
         ignore = dirty
 [submodule "external/embree"]
