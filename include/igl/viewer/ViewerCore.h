@@ -192,6 +192,7 @@ struct MeshRenderable : IRenderable {
 	ViewerData   data;
 	OpenGL_state opengl;
 	bool  isInited = false;
+	bool  isEnabled = true;
 
 	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 

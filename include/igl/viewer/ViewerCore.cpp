@@ -259,6 +259,9 @@ IGL_INLINE void igl::viewer::MeshRenderable::free() {
 
 IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 
+	if (!isEnabled)
+		return;
+
 	using namespace std;
 	using namespace Eigen;
 
