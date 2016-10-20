@@ -39,7 +39,7 @@ IGL_INLINE void igl::point_simplex_squared_distance(
   };
   // Real-time collision detection, Ericson, Chapter 5
   const auto & ClosestPtPointTriangle = 
-    [&Dot](Point p, Point a, Point b, Point c)->Point 
+    [&Dot](const Point &p, const Point & a, const Point & b, const Point & c)->Point
   {
     // Check if P in vertex region outside A
     Vector ab = b - a;
