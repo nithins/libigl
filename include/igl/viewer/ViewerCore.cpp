@@ -279,6 +279,15 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 	GLint proji = opengl.shader_mesh.uniform("proj");
 
 	Matrix4f model = core.model * this->model;
+
+	if (core.switch_handedness) {
+
+		Eigen::Matrix4f hand = Eigen::Matrix4f::Identity();
+		hand(0, 0) = -1;
+
+		model = model*hand;
+	}
+
 	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 	glUniformMatrix4fv(viewi, 1, GL_FALSE, core.view.data());
 	glUniformMatrix4fv(proji, 1, GL_FALSE, core.proj.data());
@@ -540,6 +549,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   show_faceid = false;
   show_texture = false;
   depth_test = true;
+  switch_handedness = false;
 
   // Default point size / line width
   point_size = 30;

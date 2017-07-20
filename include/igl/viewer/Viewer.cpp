@@ -227,6 +227,7 @@ namespace viewer
     });
     ngui->addVariable("Zoom", core.camera_zoom);
     ngui->addVariable("Orthographic view", core.orthographic);
+	ngui->addVariable("switch handedness", core.switch_handedness);
 
     ngui->addGroup("Draw options");
 
@@ -767,7 +768,7 @@ namespace viewer
     if(delta_y != 0)
     {
       float mult = (1.0+((delta_y>0)?1.:-1.)*0.05);
-      const float min_zoom = 0.1f;
+      const float min_zoom = 0.05f;
       core.camera_zoom = (core.camera_zoom * mult > min_zoom ? core.camera_zoom * mult : min_zoom);
     }
     return true;

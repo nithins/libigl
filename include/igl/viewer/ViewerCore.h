@@ -149,6 +149,7 @@ public:
   bool show_faceid;
   bool invert_normals;
   bool depth_test;
+  bool switch_handedness;
 
   // Point size / line width
   float point_size;
