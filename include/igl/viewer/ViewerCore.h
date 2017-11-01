@@ -197,12 +197,22 @@ struct MeshRenderable : IRenderable {
 
 	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 
+	IGL_INLINE void init();
+	IGL_INLINE void render(const ViewerCore &core);
+	IGL_INLINE void free();
+};
 
+struct InstancedMeshRenderable : IRenderable {
+	ViewerData   data;
+	OpenGL_state opengl;
+	bool  isInited = false;
+	bool  isEnabled = true;
 
 	IGL_INLINE void init();
 	IGL_INLINE void render(const ViewerCore &core);
 	IGL_INLINE void free();
 };
+
 
 typedef std::shared_ptr<MeshRenderable> MeshRenderablePtr;
 

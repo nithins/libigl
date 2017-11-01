@@ -363,6 +363,7 @@ IGL_INLINE void igl::viewer::ViewerData::clear()
   points                  = Eigen::MatrixXd (0,6);
   labels_positions        = Eigen::MatrixXd (0,3);
   labels_strings.clear();
+  instance_mats.clear();
 
   face_based = false;
 }
@@ -435,4 +436,34 @@ IGL_INLINE void igl::viewer::ViewerData::grid_texture()
   texture_G = texture_R;
   texture_B = texture_R;
   dirty |= DIRTY_TEXTURE;
+}
+
+IGL_INLINE void igl::viewer::ViewerData::add_instance(const Eigen::Matrix4d& mat)
+{
+	instance_mats.push_back(mat);
+	dirty |= DIRTY_INSTANCE_MATS;
+}
+
+IGL_INLINE void igl::viewer::ViewerData::add_instance(const Eigen::Vector3d & pos)
+{
+	Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+	aff.translate(pos);
+	Eigen::Matrix4d mat = aff.matrix();
+	add_instance(mat);
+}
+
+IGL_INLINE void igl::viewer::ViewerData::set_instances_pos(const Eigen::MatrixXd & posns)
+{
+	instance_mats.resize(posns.rows());
+
+	for (int i = 0; i < posns.rows(); ++i) 
+	{
+		Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+		Eigen::Vector3d pos = posns.row(i);
+		aff.translate(pos);
+		Eigen::Matrix4d mat = aff.matrix();
+		instance_mats[i] = mat;
+	}
+
+	dirty |= DIRTY_INSTANCE_MATS;
 }

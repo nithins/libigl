@@ -405,8 +405,93 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 
 		glEnable(GL_DEPTH_TEST);
 	}
+}
+
+IGL_INLINE void igl::viewer::InstancedMeshRenderable::init() {
+	if (isInited) return;
+	opengl.init();
+	isInited = true;
 
 }
+
+IGL_INLINE void igl::viewer::InstancedMeshRenderable::render(const ViewerCore &core) {
+
+	if (!isEnabled)
+		return;
+
+	using namespace std;
+	using namespace Eigen;
+
+	/* Bind and potentially refresh mesh/line/point data */
+	if (data.dirty)
+	{
+		opengl.set_data(data, core.invert_normals);
+		data.dirty = igl::viewer::ViewerData::DIRTY_NONE;
+	}
+	opengl.bind_instanced_mesh();
+
+	// Send transformations to the GPU
+	GLint modeli = opengl.shader_instanced_mesh.uniform("model");
+	GLint viewi = opengl.shader_instanced_mesh.uniform("view");
+	GLint proji = opengl.shader_instanced_mesh.uniform("proj");
+
+	Matrix4f model = core.model;
+
+	if (core.switch_handedness) {
+
+		Eigen::Matrix4f hand = Eigen::Matrix4f::Identity();
+		hand(0, 0) = -1;
+
+		model = model*hand;
+	}
+
+	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+	glUniformMatrix4fv(viewi, 1, GL_FALSE, core.view.data());
+	glUniformMatrix4fv(proji, 1, GL_FALSE, core.proj.data());
+
+	// Light parameters
+	GLint specular_exponenti = opengl.shader_instanced_mesh.uniform("specular_exponent");
+	GLint light_position_worldi = opengl.shader_instanced_mesh.uniform("light_position_world");
+	GLint lighting_factori = opengl.shader_instanced_mesh.uniform("lighting_factor");
+	GLint fixed_colori = opengl.shader_instanced_mesh.uniform("fixed_color");
+	GLint texture_factori = opengl.shader_instanced_mesh.uniform("texture_factor");
+
+	glUniform1f(specular_exponenti, core.shininess);
+	Vector3f rev_light = -1.*core.light_position;
+	glUniform3fv(light_position_worldi, 1, rev_light.data());
+	glUniform1f(lighting_factori, core.lighting_factor); // enables lighting
+	glUniform4f(fixed_colori, 0.0, 0.0, 0.0, 0.0);
+
+	if (data.V.rows()>0)
+	{
+		// Render fill
+		if (this->show_faces == TriState::ON || (this->show_faces == TriState::UNKNOWN && core.show_faces))
+		{
+			// Texture
+			glUniform1f(texture_factori, core.show_texture ? 1.0f : 0.0f);
+			opengl.draw_instanced_mesh(true);
+			glUniform1f(texture_factori, 0.0f);
+		}
+
+		// Render wireframe
+		if (this->show_lines == TriState::ON || (this->show_lines == TriState::UNKNOWN && core.show_lines))
+		{
+			glLineWidth(core.line_width);
+			glUniform4f(fixed_colori, core.line_color[0], core.line_color[1],
+				core.line_color[2], 1.0f);
+			opengl.draw_instanced_mesh(false);
+			glUniform4f(fixed_colori, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+
+}
+IGL_INLINE void igl::viewer::InstancedMeshRenderable::free() {
+	if (!isInited) return;
+	opengl.free();
+	isInited = false;
+
+}
+
 
 IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(const std::unordered_set<IRenderablePtr> & rens,
   bool update_matrices,

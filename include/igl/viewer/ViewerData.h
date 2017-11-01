@@ -41,7 +41,8 @@ public:
     DIRTY_MESH           = 0x00FF,
     DIRTY_OVERLAY_LINES  = 0x0100,
     DIRTY_OVERLAY_POINTS = 0x0200,
-    DIRTY_ALL            = 0x03FF
+	DIRTY_INSTANCE_MATS  = 0x1000,
+    DIRTY_ALL            = 0x13FF
   };
 
   // Empy all fields
@@ -116,6 +117,12 @@ public:
   // Generates a default grid texture
   IGL_INLINE void grid_texture();
 
+  // Adds a new instance at given transformation
+  IGL_INLINE void add_instance(const Eigen::Matrix4d& mat);
+  IGL_INLINE void add_instance(const Eigen::Vector3d& pos);
+  IGL_INLINE void set_instances_pos(const Eigen::MatrixXd& posns);
+
+
   Eigen::MatrixXd V; // Vertices of the current mesh (#V x 3)
   Eigen::MatrixXi F; // Faces of the mesh (#F x 3)
 
@@ -159,6 +166,9 @@ public:
   // Texts contains in the i-th position the text of the i-th label
   Eigen::MatrixXd           labels_positions;
   std::vector<std::string>  labels_strings;
+
+  // Instances
+  std::vector<Eigen::Matrix4d>   instance_mats;
 
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;

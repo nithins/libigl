@@ -21,6 +21,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::init_buffers()
   glGenBuffers(1, &vbo_V_specular);
   glGenBuffers(1, &vbo_V_uv);
   glGenBuffers(1, &vbo_F);
+  glGenBuffers(1, &vbo_I_modeli);
   glGenTextures(1, &vbo_tex);
 
   // Line overlay
@@ -53,6 +54,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::free_buffers()
   glDeleteBuffers(1, &vbo_V_specular);
   glDeleteBuffers(1, &vbo_V_uv);
   glDeleteBuffers(1, &vbo_F);
+  glDeleteBuffers(1, &vbo_I_modeli);
   glDeleteBuffers(1, &vbo_lines_F);
   glDeleteBuffers(1, &vbo_lines_V);
   glDeleteBuffers(1, &vbo_lines_V_colors);
@@ -269,6 +271,13 @@ IGL_INLINE void igl::viewer::OpenGL_state::set_data(const igl::viewer::ViewerDat
       points_F_vbo(i) = i;
     }
   }
+
+  if (dirty & ViewerData::DIRTY_INSTANCE_MATS && data.instance_mats.size() != 0) {
+	  I_modeli_vbo.resize(4, 4 * data.instance_mats.size());
+	  int i = 0;
+	  for (auto m : data.instance_mats)
+		  I_modeli_vbo.block(0, 4 * i++, 4, 4) = m.cast<float>();
+  }
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::bind_mesh()
@@ -299,6 +308,58 @@ IGL_INLINE void igl::viewer::OpenGL_state::bind_mesh()
   }
   glUniform1i(shader_mesh.uniform("tex"), 0);
   dirty &= ~ViewerData::DIRTY_MESH;
+}
+
+
+IGL_INLINE void igl::viewer::OpenGL_state::bind_instanced_mesh()
+{
+	if (I_modeli_vbo.size() == 0)
+		return;
+
+	//glBindVertexArray(vao_mesh);
+	shader_instanced_mesh.bind();
+	shader_instanced_mesh.bindVertexAttribArray("position", vbo_V, V_vbo, dirty & ViewerData::DIRTY_POSITION);
+	shader_instanced_mesh.bindVertexAttribArray("normal", vbo_V_normals, V_normals_vbo, dirty & ViewerData::DIRTY_NORMAL);
+	shader_instanced_mesh.bindVertexAttribArray("Ka", vbo_V_ambient, V_ambient_vbo, dirty & ViewerData::DIRTY_AMBIENT);
+	shader_instanced_mesh.bindVertexAttribArray("Kd", vbo_V_diffuse, V_diffuse_vbo, dirty & ViewerData::DIRTY_DIFFUSE);
+	shader_instanced_mesh.bindVertexAttribArray("Ks", vbo_V_specular, V_specular_vbo, dirty & ViewerData::DIRTY_SPECULAR);
+	shader_instanced_mesh.bindVertexAttribArray("texcoord", vbo_V_uv, V_uv_vbo, dirty & ViewerData::DIRTY_UV);
+
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_I_modeli);
+	if (dirty & ViewerData::DIRTY_INSTANCE_MATS)
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float)*I_modeli_vbo.size(), I_modeli_vbo.data(), GL_DYNAMIC_DRAW);
+
+	auto modeli = shader_instanced_mesh.attrib("modeli");
+
+	for (int i = 0; i < 4; ++i) {
+
+		glVertexAttribPointer(modeli+i, 4,
+			GL_FLOAT, GL_FALSE, sizeof(float) * 16, (void*)(4*i * sizeof(float)));
+		glEnableVertexAttribArray(modeli+i);
+		glVertexAttribDivisor(modeli+i, 1);
+	}
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_F);
+	if (dirty & ViewerData::DIRTY_FACE)
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*F_vbo.size(), F_vbo.data(), GL_DYNAMIC_DRAW);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, vbo_tex);
+	if (dirty & ViewerData::DIRTY_TEXTURE)
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_u, tex_v, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data());
+	}
+	glUniform1i(shader_instanced_mesh.uniform("tex"), 0);
+	dirty &= ~ViewerData::DIRTY_MESH;
+	dirty &= ~ViewerData::DIRTY_INSTANCE_MATS;
+
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::bind_overlay_lines()
@@ -349,6 +410,23 @@ IGL_INLINE void igl::viewer::OpenGL_state::draw_mesh(bool solid)
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+IGL_INLINE void igl::viewer::OpenGL_state::draw_instanced_mesh(bool solid)
+{
+	glPolygonMode(GL_FRONT_AND_BACK, solid ? GL_FILL : GL_LINE);
+
+	/* Avoid Z-buffer fighting between filled triangles & wireframe lines */
+	if (solid)
+	{
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(1.0, 1.0);
+	}
+	glDrawElementsInstanced(GL_TRIANGLES, 3 * F_vbo.cols(), GL_UNSIGNED_INT, 0, I_modeli_vbo.size()/16);
+
+	glDisable(GL_POLYGON_OFFSET_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+
 IGL_INLINE void igl::viewer::OpenGL_state::draw_overlay_lines()
 {
   glDrawElements(GL_LINES, lines_F_vbo.cols(), GL_UNSIGNED_INT, 0);
@@ -361,6 +439,37 @@ IGL_INLINE void igl::viewer::OpenGL_state::draw_overlay_points()
 
 IGL_INLINE void igl::viewer::OpenGL_state::init()
 {
+  std::string mesh_instance_vertex_shader_string =
+  "#version 410\n"
+  "uniform mat4 model;"
+  "uniform mat4 view;"
+  "uniform mat4 proj;"
+  "layout (location = 0) in vec3 position;"
+  "layout (location = 1) in vec3 normal;"
+  "layout (location = 2) in mat4 modeli;"
+  "out vec3 position_eye;"
+  "out vec3 normal_eye;"
+  "in vec3 Ka;"
+  "in vec3 Kd;"
+  "in vec3 Ks;"
+  "in vec2 texcoord;"
+  "out vec2 texcoordi;"
+  "out vec3 Kai;"
+  "out vec3 Kdi;"
+  "out vec3 Ksi;"
+
+  "void main()"
+  "{"
+  "  position_eye = vec3 (view * model  * modeli * vec4 (position, 1.0));"
+  "  normal_eye = vec3 (view * model * vec4 (normal, 0.0));"
+  "  normal_eye = normalize(normal_eye);"
+  "  gl_Position = proj * vec4 (position_eye, 1.0);" //proj * view * model * vec4(position, 1.0);"
+  "  Kai = Ka;"
+  "  Kdi = Kd;"
+  "  Ksi = Ks;"
+  "  texcoordi = texcoord;"
+  "}";
+
   std::string mesh_vertex_shader_string =
   "#version 150\n"
   "uniform mat4 model;"
@@ -472,6 +581,8 @@ IGL_INLINE void igl::viewer::OpenGL_state::init()
   init_buffers();
   shader_mesh.init(mesh_vertex_shader_string,
       mesh_fragment_shader_string, "outColor");
+  shader_instanced_mesh.init(mesh_instance_vertex_shader_string,
+	  mesh_fragment_shader_string, "outColor");
   shader_overlay_lines.init(overlay_vertex_shader_string,
       overlay_fragment_shader_string, "outColor");
   shader_overlay_points.init(overlay_vertex_shader_string,
@@ -481,6 +592,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::init()
 IGL_INLINE void igl::viewer::OpenGL_state::free()
 {
   shader_mesh.free();
+  shader_instanced_mesh.free();
   shader_overlay_lines.free();
   shader_overlay_points.free();
   free_buffers();

@@ -28,6 +28,7 @@ public:
   GLuint vao_mesh;
   GLuint vao_overlay_lines;
   GLuint vao_overlay_points;
+  OpenGL_shader shader_instanced_mesh;
   OpenGL_shader shader_mesh;
   OpenGL_shader shader_overlay_lines;
   OpenGL_shader shader_overlay_points;
@@ -38,6 +39,8 @@ public:
   GLuint vbo_V_ambient; // Ambient material  (#V x 3)
   GLuint vbo_V_diffuse; // Diffuse material  (#V x 3)
   GLuint vbo_V_specular; // Specular material  (#V x 3)
+  GLuint vbo_I_modeli; // instance array of model view matrices (#I x 16)
+
 
   GLuint vbo_F; // Faces of the mesh (#F x 3)
   GLuint vbo_tex; // Texture
@@ -60,6 +63,7 @@ public:
   Eigen::MatrixXf lines_V_colors_vbo;
   Eigen::MatrixXf points_V_vbo;
   Eigen::MatrixXf points_V_colors_vbo;
+  Eigen::MatrixXf I_modeli_vbo;
 
   int tex_u;
   int tex_v;
@@ -89,6 +93,12 @@ public:
 
   /// Draw the currently buffered mesh (either solid or wireframe)
   IGL_INLINE void draw_mesh(bool solid);
+
+  // Bind the underlying OpenGL buffer objects for subsequent mesh draw calls
+  IGL_INLINE void bind_instanced_mesh();
+
+  /// Draw the currently buffered mesh (either solid or wireframe)
+  IGL_INLINE void draw_instanced_mesh(bool solid);
 
   // Bind the underlying OpenGL buffer objects for subsequent line overlay draw calls
   IGL_INLINE void bind_overlay_lines();
