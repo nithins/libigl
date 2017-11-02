@@ -33,10 +33,13 @@
 
 #include <Eigen/LU>
 
-#define GLFW_INCLUDE_GLU
-#ifndef _WIN32
-  #define GLFW_INCLUDE_GLCOREARB
+//#define GLFW_INCLUDE_GLU
+#if defined(__APPLE__)
+#define GLFW_INCLUDE_GLCOREARB
+#else
+#define GL_GLEXT_PROTOTYPES
 #endif
+
 #include <GLFW/glfw3.h>
 
 #include <cmath>
@@ -80,7 +83,6 @@ static igl::viewer::Viewer * __viewer;
 static double highdpi = 1;
 static double scroll_x = 0;
 static double scroll_y = 0;
-static int global_KMod = 0;
 
 static void glfw_mouse_press(GLFWwindow* window, int button, int action, int modifier)
 {
@@ -152,7 +154,7 @@ static void glfw_window_size(GLFWwindow* window, int width, int height)
   int w = width*highdpi;
   int h = height*highdpi;
 
-  __viewer->resize(w, h);
+  __viewer->post_resize(w, h);
 
   // TODO: repositioning of the nanogui
 }
@@ -203,7 +205,7 @@ namespace viewer
     ngui->setFixedSize(Eigen::Vector2i(60,20));
 
     // Create nanogui widgets
-    nanogui::Window *window = ngui->addWindow(Eigen::Vector2i(10,10),"libIGL-Viewer");
+    /* nanogui::Window *window = */ ngui->addWindow(Eigen::Vector2i(10,10),"libIGL-Viewer");
 
     // ---------------------- LOADING ----------------------
 
@@ -277,6 +279,8 @@ namespace viewer
 
   IGL_INLINE Viewer::Viewer()
   {
+    window = nullptr;
+
 #ifdef IGL_VIEWER_WITH_NANOGUI
     ngui = nullptr;
     screen = nullptr;
@@ -315,13 +319,14 @@ namespace viewer
     const std::string usage(R"(igl::viewer::Viewer usage:
   [drag]  Rotate scene
   A,a     Toggle animation (tight draw loop)
+  F,f     Toggle face based
   I,i     Toggle invert normals
   L,l     Toggle wireframe
   O,o     Toggle orthographic/perspective projection
   T,t     Toggle filled faces
   Z       Snap to canonical view
-  [,]     Toggle between rotation control types (e.g. trackball, two-axis
-          valuator with fixed up))"
+  [,]     Toggle between rotation control types (trackball, two-axis
+          valuator with fixed up, 2D mode with no rotation))"
 #ifdef IGL_VIEWER_WITH_NANOGUI
 		R"(
   ;       Toggle vertex labels
@@ -522,6 +527,13 @@ namespace viewer
       //  core.invert_normals = !core.invert_normals;
       //  return true;
       //}
+
+      //case 'F':
+      //case 'f':
+      //{
+      //  data.set_face_based(!data.face_based);
+      //  return true;
+      //}
       case 'L':
       case 'l':
       {
@@ -549,13 +561,10 @@ namespace viewer
       case ']':
       {
         if(core.rotation_type == ViewerCore::ROTATION_TYPE_TRACKBALL)
-        {
-          core.set_rotation_type(
-            ViewerCore::ROTATION_TYPE_TWO_AXIS_VALUATOR_FIXED_UP);
-        }else
-        {
+          core.set_rotation_type(ViewerCore::ROTATION_TYPE_TWO_AXIS_VALUATOR_FIXED_UP);
+        else
           core.set_rotation_type(ViewerCore::ROTATION_TYPE_TRACKBALL);
-        }
+
         return true;
       }
 #ifdef IGL_VIEWER_WITH_NANOGUI
@@ -638,7 +647,11 @@ namespace viewer
     switch (button)
     {
       case MouseButton::Left:
-        mouse_mode = MouseMode::Rotation;
+        if (core.rotation_type == ViewerCore::ROTATION_TYPE_NO_ROTATION) {
+          mouse_mode = MouseMode::Translation;
+        } else {
+          mouse_mode = MouseMode::Rotation;
+        }
         break;
 
       case MouseButton::Right:
@@ -699,6 +712,8 @@ namespace viewer
           {
             default:
               assert(false && "Unknown rotation type");
+            case ViewerCore::ROTATION_TYPE_NO_ROTATION:
+              break;
             case ViewerCore::ROTATION_TYPE_TRACKBALL:
               igl::trackball(
                 core.viewport(2),
@@ -801,6 +816,7 @@ namespace viewer
 
 #ifdef IGL_VIEWER_WITH_NANOGUI
     ngui->refresh();
+    screen->drawContents();
     screen->drawWidgets();
 #endif
   }
@@ -855,7 +871,20 @@ namespace viewer
 
   IGL_INLINE void Viewer::resize(int w,int h)
   {
+    if (window) {
+      glfwSetWindowSize(window, w/highdpi, h/highdpi);
+    } else {
+      post_resize(w, h);
+    }
+  }
+
+  IGL_INLINE void Viewer::post_resize(int w,int h)
+  {
     core.viewport = Eigen::Vector4f(0,0,w,h);
+    for (unsigned int i = 0; i<plugins.size(); ++i)
+    {
+      plugins[i]->post_resize(w, h);
+    }
   }
 
   IGL_INLINE void Viewer::snap_to_canonical_quaternion()
@@ -893,7 +922,7 @@ namespace viewer
 
     glfwWindowHint(GLFW_SAMPLES, 8);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
     #ifdef __APPLE__
       glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -908,7 +937,11 @@ namespace viewer
     }
     else
     {
-      window = glfwCreateWindow(1280,800,"libigl viewer",nullptr,nullptr);
+      if (core.viewport.tail<2>().any()) {
+        window = glfwCreateWindow(core.viewport(2),core.viewport(3),"libigl viewer",nullptr,nullptr);
+      } else {
+        window = glfwCreateWindow(1280,800,"libigl viewer",nullptr,nullptr);
+      }
     }
 
     if (!window)
