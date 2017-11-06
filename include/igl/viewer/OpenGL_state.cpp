@@ -317,7 +317,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::bind_instanced_mesh()
 	if (I_modeli_vbo.size() == 0)
 		return;
 
-	//glBindVertexArray(vao_mesh);
+	glBindVertexArray(vao_mesh);
 	shader_instanced_mesh.bind();
 	shader_instanced_mesh.bindVertexAttribArray("position", vbo_V, V_vbo, dirty & ViewerData::DIRTY_POSITION);
 	shader_instanced_mesh.bindVertexAttribArray("normal", vbo_V_normals, V_normals_vbo, dirty & ViewerData::DIRTY_NORMAL);
