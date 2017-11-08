@@ -147,6 +147,7 @@ public:
   bool show_faces;
   bool show_lines;
   bool show_vertid;
+  bool show_face_vertid;
   bool show_faceid;
   bool invert_normals;
   bool depth_test;
@@ -179,15 +180,35 @@ struct IRenderable {
 	virtual void render(const ViewerCore &core) = 0;
 	virtual void free() = 0;
 
-	enum class TriState : int8_t {
-		UNKNOWN = -1,
-		OFF = 0,
-		ON  = 1
+	struct TriState{
+		enum _ {
+			UNKNOWN = -1,
+			OFF = 0,
+			ON = 1
+		};
+
+
+		inline bool On() { return state == ON; }
+		inline bool Off() { return state == OFF; }
+		inline bool Unknown() { return state == UNKNOWN; }
+
+		inline void TurnOn() { state = ON; }
+		inline void TurnOff() { state = OFF;}
+		inline void TurnUnknown() { state = UNKNOWN; }
+
+
+		inline bool OnOrUnknownAnd(bool v) { return On() || Unknown() && v; }
+
+	private:
+		char state = UNKNOWN;
+
 	};
 
 
-	TriState show_lines = TriState::UNKNOWN;
-	TriState show_faces = TriState::UNKNOWN;
+	TriState show_lines;
+	TriState show_faces;
+	TriState show_face_vertid;
+
 };
 
 struct MeshRenderable : IRenderable {

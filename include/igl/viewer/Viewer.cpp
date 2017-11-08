@@ -263,6 +263,7 @@ namespace viewer
     ngui->addVariable("Fill", core.show_faces);
     ngui->addVariable("Show vertex labels", core.show_vertid);
     ngui->addVariable("Show faces labels", core.show_faceid);
+	ngui->addVariable("Show face vert labels", core.show_face_vertid);
 
     screen->setVisible(true);
     screen->performLayout();

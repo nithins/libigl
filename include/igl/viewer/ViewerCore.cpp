@@ -17,6 +17,7 @@
 #include <igl/PI.h>
 #include <Eigen/Geometry>
 #include <iostream>
+#include <set>
 
 IGL_INLINE void igl::viewer::ViewerCore::align_camera_center(
   const Eigen::MatrixXd& V,
@@ -189,9 +190,10 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 
 	Matrix4f model = core.model * this->model;
 
+	Eigen::Matrix4f hand = Eigen::Matrix4f::Identity();
+
 	if (core.switch_handedness) {
 
-		Eigen::Matrix4f hand = Eigen::Matrix4f::Identity();
 		hand(0, 0) = -1;
 
 		model = model*hand;
@@ -217,7 +219,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 	if (data.V.rows()>0)
 	{
 		// Render fill
-		if (this->show_faces == TriState::ON || (this->show_faces == TriState::UNKNOWN && core.show_faces))
+		if (this->show_faces.OnOrUnknownAnd(core.show_faces))
 		{
 			// Texture
 			glUniform1f(texture_factori, core.show_texture ? 1.0f : 0.0f);
@@ -226,7 +228,7 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 		}
 
 		// Render wireframe
-		if (this->show_lines == TriState::ON || (this->show_lines == TriState::UNKNOWN && core.show_lines))
+		if (this->show_lines.OnOrUnknownAnd(core.show_lines))
 		{
 			glLineWidth(core.line_width);
 			glUniform4f(fixed_colori, core.line_color[0], core.line_color[1],
@@ -235,18 +237,24 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 			glUniform4f(fixed_colori, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
 
-#if defined(IGL_VIEWER_WITH_NANOGUI) && 0
+#if defined(IGL_VIEWER_WITH_NANOGUI)
+		auto &ccore = const_cast<ViewerCore &>(core);
+
+		Eigen::Matrix4f mat = core.view*core.model;
+		mat = mat*hand;
+
 		if (core.show_vertid)
 		{
-			core.textrenderer.BeginDraw(core.view*core.model, core.proj, core.viewport, core.object_scale);
+
+			ccore.textrenderer.BeginDraw(mat, core.proj, core.viewport, core.object_scale);
 			for (int i = 0; i<data.V.rows(); ++i)
-				core.textrenderer.DrawText(data.V.row(i), data.V_normals.row(i), to_string(i));
-			core.textrenderer.EndDraw();
+				ccore.textrenderer.DrawText(data.V.row(i), data.V_normals.row(i), to_string(i));
+			ccore.textrenderer.EndDraw();
 		}
 
 		if (core.show_faceid)
 		{
-			core.textrenderer.BeginDraw(core.view*core.model, core.proj, core.viewport, core.object_scale);
+			ccore.textrenderer.BeginDraw(mat, core.proj, core.viewport, core.object_scale);
 
 			for (int i = 0; i<data.F.rows(); ++i)
 			{
@@ -255,9 +263,25 @@ IGL_INLINE void igl::viewer::MeshRenderable::render(const ViewerCore &core) {
 					p += data.V.row(data.F(i, j));
 				p /= data.F.cols();
 
-				core.textrenderer.DrawText(p, data.F_normals.row(i), to_string(i));
+				ccore.textrenderer.DrawText(p, data.F_normals.row(i), to_string(i));
 			}
-			core.textrenderer.EndDraw();
+			ccore.textrenderer.EndDraw();
+		}
+
+		if (this->show_face_vertid.OnOrUnknownAnd(core.show_face_vertid))
+		{
+
+			std::set<int> vset;
+			for (int i = 0; i<data.F.rows(); ++i)
+				for (int j = 0; j<data.F.cols(); ++j)
+					vset.insert(data.F(i, j));
+
+			ccore.textrenderer.BeginDraw(mat, core.proj, core.viewport, core.object_scale);
+
+			for (int i : vset) 
+				ccore.textrenderer.DrawText(data.V.row(i), data.V_normals.row(i), to_string(i));
+
+			ccore.textrenderer.EndDraw();
 		}
 #endif
 	}
@@ -374,7 +398,7 @@ IGL_INLINE void igl::viewer::InstancedMeshRenderable::render(const ViewerCore &c
 	if (data.V.rows()>0)
 	{
 		// Render fill
-		if (this->show_faces == TriState::ON || (this->show_faces == TriState::UNKNOWN && core.show_faces))
+		if (this->show_faces.OnOrUnknownAnd(core.show_faces))
 		{
 			// Texture
 			glUniform1f(texture_factori, core.show_texture ? 1.0f : 0.0f);
@@ -383,7 +407,7 @@ IGL_INLINE void igl::viewer::InstancedMeshRenderable::render(const ViewerCore &c
 		}
 
 		// Render wireframe
-		if (this->show_lines == TriState::ON || (this->show_lines == TriState::UNKNOWN && core.show_lines))
+		if (this->show_lines.OnOrUnknownAnd(core.show_lines))
 		{
 			glLineWidth(core.line_width);
 			glUniform4f(fixed_colori, core.line_color[0], core.line_color[1],
@@ -540,6 +564,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   show_overlay = true;
   show_overlay_depth = true;
   show_vertid = false;
+  show_face_vertid = false;
   show_faceid = false;
   show_texture = false;
   depth_test = true;
