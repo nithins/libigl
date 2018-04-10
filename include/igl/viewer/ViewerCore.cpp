@@ -368,7 +368,8 @@ IGL_INLINE void igl::viewer::InstancedMeshRenderable::render(const ViewerCore &c
 	GLint viewi = opengl.shader_instanced_mesh.uniform("view");
 	GLint proji = opengl.shader_instanced_mesh.uniform("proj");
 
-	Matrix4f model = core.model;
+	//Matrix4f model = core.model;
+	Matrix4f model = core.model * this->model;
 
 	if (core.switch_handedness) {
 

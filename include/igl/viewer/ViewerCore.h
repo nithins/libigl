@@ -179,6 +179,7 @@ struct IRenderable {
 	virtual void init() = 0;
 	virtual void render(const ViewerCore &core) = 0;
 	virtual void free() = 0;
+	virtual void setModelMatrix(const Eigen::Matrix4f & m) = 0;
 
 	struct TriState{
 		enum _ {
@@ -215,13 +216,14 @@ struct MeshRenderable : IRenderable {
 	ViewerData   data;
 	OpenGL_state opengl;
 	bool  isInited = false;
-	bool  isEnabled = true;
-
-	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+	bool  isEnabled = true;	
 
 	IGL_INLINE void init();
 	IGL_INLINE void render(const ViewerCore &core);
 	IGL_INLINE void free();
+
+	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+	IGL_INLINE void setModelMatrix(const Eigen::Matrix4f & m) { model = m; }
 };
 
 struct InstancedMeshRenderable : IRenderable {
@@ -233,6 +235,9 @@ struct InstancedMeshRenderable : IRenderable {
 	IGL_INLINE void init();
 	IGL_INLINE void render(const ViewerCore &core);
 	IGL_INLINE void free();
+
+	Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+	IGL_INLINE void setModelMatrix(const Eigen::Matrix4f & m) { model = m; }
 };
 
 
