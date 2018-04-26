@@ -212,7 +212,7 @@ struct IRenderable {
 
 };
 
-struct MeshRenderable : IRenderable {
+struct MeshRenderable : public IRenderable {
 	ViewerData   data;
 	OpenGL_state opengl;
 	bool  isInited = false;
@@ -226,7 +226,7 @@ struct MeshRenderable : IRenderable {
 	IGL_INLINE void setModelMatrix(const Eigen::Matrix4f & m) { model = m; }
 };
 
-struct InstancedMeshRenderable : IRenderable {
+struct InstancedMeshRenderable :public IRenderable {
 	ViewerData   data;
 	OpenGL_state opengl;
 	bool  isInited = false;
